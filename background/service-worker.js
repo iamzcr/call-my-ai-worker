@@ -101,12 +101,14 @@ function clearSession() {
 }
 
 async function closeSession() {
+  const tabId = state.appTabId;
   const winId = state.appWinId;
   state.appWinId = null;
   setAppTab(null);
   clearSession();
   await persistTasks();
-  if (winId != null) chrome.windows.remove(winId).catch(() => {});
+  if (tabId != null) chrome.tabs.remove(tabId).catch(() => {});
+  else if (winId != null) chrome.windows.remove(winId).catch(() => {});
 }
 
 // ---------- app window ----------
@@ -132,15 +134,16 @@ async function ensureAppWindow() {
       }
     }
   }
-  const win = await chrome.windows.create({
+  let winId = null;
+  try { winId = (await chrome.windows.getLastFocused()).id; } catch (e) {}
+  const tab = await chrome.tabs.create({
     url: chrome.runtime.getURL(APP_URL),
-    type: 'normal',
-    state: 'maximized',
-    focused: true
+    active: true,
+    windowId: winId != null ? winId : undefined
   });
-  state.appWinId = win.id;
-  setAppTab(win.tabs && win.tabs[0] ? win.tabs[0].id : null);
-  return win.id;
+  state.appWinId = tab.windowId != null ? tab.windowId : winId;
+  setAppTab(tab.id);
+  return state.appWinId;
 }
 
 // ---------- ask: app page embeds iframes ----------
@@ -299,6 +302,15 @@ async function handleTest(provider) {
 }
 
 // ---------- window / notification ----------
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === state.appTabId) {
+    state.appWinId = null;
+    setAppTab(null);
+    clearSession();
+    persistTasks();
+  }
+});
+
 chrome.windows.onRemoved.addListener((winId) => {
   if (winId === state.appWinId) {
     state.appWinId = null;

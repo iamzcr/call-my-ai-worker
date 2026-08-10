@@ -34,6 +34,16 @@
       if (attachments && attachments.length) {
         const ok = lib.attachFiles(attachments, input, provider);
         lib.debugDump && lib.debugDump('attach', provider, input, String(ok));
+        try {
+          console.log('[all-ai-ask] attachConfig', {
+            provider: provider && provider.id,
+            url: provider && provider.url,
+            fileInputSelector: provider && provider.fileInputSelector,
+            attachButtonSelector: provider && provider.attachButtonSelector,
+            composerTag: input && input.tagName,
+            composerClass: input && (typeof input.className === 'string' ? input.className.slice(0, 120) : '')
+          });
+        } catch (e) {}
         await new Promise(r => setTimeout(r, 800));
         if (seq !== askSeq) return;
       }
