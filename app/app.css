@@ -17,7 +17,7 @@ header {
   background: #fafafa;
 }
 .h-top { position: relative; display: flex; align-items: center; justify-content: space-between; }
-.h-tip { font-size: 12px; color: #6b7280; }
+.h-tip { font-size: 10px; color: #6b7280; line-height: 1.4; }
 header h1 { font-size: 15px; margin: 0; color: #374151; font-weight: 600; }
 .h-actions { display: flex; align-items: center; gap: 10px; }
 .icon-btn {
