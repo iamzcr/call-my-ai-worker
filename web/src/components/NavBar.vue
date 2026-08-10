@@ -36,7 +36,6 @@ const activeHash = ref('')
 
 function onScroll() {
   scrolled.value = window.scrollY > 8
-  // mark active section
   const sections = ['#how', '#features', '#hero']
   let current = '#hero'
   for (const sel of sections) {
@@ -67,34 +66,33 @@ const links = [
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 14px 24px 0;
-  transition: padding 0.35s var(--ease);
-}
-.navbar-wrap.scrolled {
-  padding-top: 10px;
+  padding: 0;
+  transition: box-shadow 0.35s var(--ease);
 }
 .navbar {
-  max-width: 1080px;
-  margin: 0 auto;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.7);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(226, 232, 240, 0.7);
-  transition: box-shadow 0.35s var(--ease), border-color 0.35s var(--ease), background 0.35s var(--ease), border-radius 0.35s var(--ease);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  transition: box-shadow 0.35s var(--ease), border-color 0.35s var(--ease),
+    background 0.35s var(--ease);
 }
 .navbar.scrolled {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(226, 232, 240, 0.95);
-  border-radius: 999px;
-  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.05);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: var(--border);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 .navbar-inner {
   height: 58px;
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 22px;
+  padding: 0 clamp(14px, 3.5vw, 32px);
 }
 
 /* brand */
@@ -104,6 +102,7 @@ const links = [
   gap: 11px;
   cursor: pointer;
   user-select: none;
+  flex-shrink: 0;
 }
 .brand-logo-wrap {
   position: relative;
@@ -130,16 +129,19 @@ const links = [
   font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
   background: linear-gradient(120deg, #0f172a 30%, #4f46e5 70%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* links */
+/* links — follow brand on the left */
 .nav-links {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
+  margin-left: 24px;
 }
 .nav-link {
   position: relative;
@@ -147,8 +149,9 @@ const links = [
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  padding: 7px 14px;
+  padding: 7px 12px;
   border-radius: 999px;
+  white-space: nowrap;
   transition: color 0.2s, background 0.2s;
 }
 .nav-link:hover {
@@ -168,12 +171,15 @@ const links = [
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
   background: var(--gradient);
   color: #fff;
   padding: 9px 20px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.34);
   transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
 }
@@ -210,11 +216,13 @@ const links = [
 
 @media (max-width: 768px) {
   .navbar-wrap {
-    padding: 10px 14px 0;
+    padding: 10px 0 0;
   }
   .navbar-inner {
     height: 54px;
-    padding: 0 14px;
+  }
+  .brand-name {
+    font-size: 14px;
   }
   .nav-links {
     display: none;

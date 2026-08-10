@@ -23,34 +23,95 @@
             <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
             <span class="mock-url">call-my-ai-worker</span>
           </div>
-          <div class="mock-body">
-            <div class="mock-sidebar">
-              <div class="mock-question"></div>
-              <div class="mock-question short"></div>
-              <div class="mock-ask"></div>
-              <div class="mock-row" v-for="i in 4" :key="i">
-                <span class="mock-check" :class="{ on: i !== 4 }"></span>
-                <span class="mock-label" :class="'w' + i"></span>
-                <span class="mock-badge" :class="'b' + i"></span>
-              </div>
-            </div>
-            <div class="mock-content">
-              <div class="mock-line w-full"></div>
-              <div class="mock-line w-90"></div>
-              <div class="mock-line w-70"></div>
-              <div class="mock-line w-85"></div>
-              <div class="mock-line w-50"></div>
-              <div class="mock-cursor"></div>
+          <div class="carousel">
+            <transition-group name="fade">
+              <img
+                v-for="(img, i) in demoImages"
+                v-show="current === i"
+                :key="img"
+                class="carousel-img"
+                :src="img"
+                :alt="'演示 ' + (i + 1)"
+                @click="openLightbox(i)"
+              />
+            </transition-group>
+            <button class="carousel-zoom" @click="openLightbox(current)" title="点击放大">⤢</button>
+            <div class="carousel-dots">
+              <button
+                v-for="(img, i) in demoImages"
+                :key="'dot' + i"
+                class="carousel-dot"
+                :class="{ active: current === i }"
+                @click="current = i"
+              ></button>
             </div>
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <transition name="modal">
+    <div v-if="lightboxOpen" class="lightbox" @click.self="closeLightbox">
+      <button class="lightbox-close" @click="closeLightbox" title="关闭">&times;</button>
+      <img class="lightbox-img" :src="demoImages[lightboxIndex]" :alt="'演示 ' + (lightboxIndex + 1)" @click.stop />
+      <div class="lightbox-nav">
+        <button class="lightbox-prev" @click.stop="step(-1)" title="上一张">‹</button>
+        <span class="lightbox-count">{{ lightboxIndex + 1 }} / {{ demoImages.length }}</span>
+        <button class="lightbox-next" @click.stop="step(1)" title="下一张">›</button>
+      </div>
+    </div>
+  </transition>
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { scrollTo } from '@/router'
+
+const demoImages = ['demo/1.png', 'demo/2.png']
+const current = ref(0)
+const lightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+let timer = null
+
+function startCarousel() {
+  stopCarousel()
+  timer = setInterval(() => {
+    current.value = (current.value + 1) % demoImages.length
+  }, 3500)
+}
+function stopCarousel() {
+  if (timer) { clearInterval(timer); timer = null }
+}
+
+function openLightbox(i) {
+  lightboxIndex.value = i
+  lightboxOpen.value = true
+  stopCarousel()
+}
+function closeLightbox() {
+  lightboxOpen.value = false
+  startCarousel()
+}
+function step(dir) {
+  lightboxIndex.value = (lightboxIndex.value + dir + demoImages.length) % demoImages.length
+}
+
+function onKey(e) {
+  if (!lightboxOpen.value) return
+  if (e.key === 'Escape') closeLightbox()
+  else if (e.key === 'ArrowLeft') step(-1)
+  else if (e.key === 'ArrowRight') step(1)
+}
+
+onMounted(() => {
+  startCarousel()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => {
+  stopCarousel()
+  window.removeEventListener('keydown', onKey)
+})
 
 function goHow() {
   scrollTo('#how')
@@ -214,99 +275,165 @@ function goHow() {
   padding: 4px 12px;
   text-align: left;
 }
-.mock-body {
-  display: flex;
-  height: 320px;
+.carousel {
+  position: relative;
+  height: 420px;
+  background: #f8fafc;
+  overflow: hidden;
 }
-.mock-sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  background: #fafbfc;
-  border-right: 1px solid var(--border-soft);
-  padding: 16px 14px;
-  text-align: left;
+.carousel-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  padding: 8px;
+  cursor: zoom-in;
 }
-.mock-question {
-  height: 14px;
-  border-radius: 6px;
-  background: #e2e8f0;
-  margin-bottom: 10px;
-}
-.mock-question.short { width: 70%; }
-.mock-ask {
+.carousel-zoom {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
   height: 34px;
-  border-radius: 10px;
-  background: var(--gradient);
-  opacity: 0.9;
-  margin: 14px 0 20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-soft);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+  transition: transform 0.2s var(--ease), color 0.2s, box-shadow 0.2s;
+  z-index: 2;
 }
-.mock-row {
+.carousel-zoom:hover {
+  transform: scale(1.1);
+  color: var(--primary);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+.carousel-dots {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: #cbd5e1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.25s, transform 0.25s;
+}
+.carousel-dot.active {
+  background: var(--primary);
+  transform: scale(1.25);
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.6s var(--ease);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 64px;
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: scale(1.08);
+}
+.lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  background: #fff;
+  cursor: default;
+  user-select: none;
+}
+.lightbox-nav {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin-bottom: 8px;
+  justify-content: center;
+  gap: 20px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
 }
-.mock-check {
-  width: 12px;
-  height: 12px;
-  border-radius: 4px;
-  border: 1.5px solid #cbd5e1;
-  flex-shrink: 0;
+.lightbox-prev,
+.lightbox-next {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
 }
-.mock-check.on {
-  background: var(--primary);
-  border-color: var(--primary);
+.lightbox-prev:hover,
+.lightbox-next:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: scale(1.08);
 }
-.mock-label {
-  height: 10px;
-  border-radius: 4px;
-  background: #cbd5e1;
-  flex: 1;
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.25s var(--ease);
 }
-.mock-label.w1 { max-width: 55%; }
-.mock-label.w2 { max-width: 70%; }
-.mock-label.w3 { max-width: 45%; }
-.mock-label.w4 { max-width: 60%; }
-.mock-badge {
-  width: 30px;
-  height: 12px;
-  border-radius: 999px;
-  flex-shrink: 0;
+.modal-enter-active .lightbox-img,
+.modal-leave-active .lightbox-img {
+  transition: transform 0.25s var(--ease);
 }
-.mock-badge.b1 { background: #dcfce7; }
-.mock-badge.b2 { background: #e0e7ff; }
-.mock-badge.b3 { background: #e0e7ff; }
-.mock-badge.b4 { background: #f1f5f9; }
-.mock-content {
-  flex: 1;
-  padding: 22px 26px;
-  text-align: left;
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
 }
-.mock-line {
-  height: 13px;
-  border-radius: 6px;
-  background: #eef2f7;
-  margin-bottom: 14px;
-}
-.mock-line.w-full { width: 100%; }
-.mock-line.w-90 { width: 90%; }
-.mock-line.w-70 { width: 70%; }
-.mock-line.w-85 { width: 85%; }
-.mock-line.w-50 { width: 50%; }
-.mock-cursor {
-  width: 10px;
-  height: 18px;
-  background: var(--primary);
-  border-radius: 2px;
-  animation: blink 1.1s step-end infinite;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+.modal-enter-from .lightbox-img,
+.modal-leave-to .lightbox-img {
+  transform: scale(0.95);
 }
 
 @media (max-width: 768px) {
@@ -319,11 +446,8 @@ function goHow() {
   .hero-sub {
     font-size: 16px;
   }
-  .mock-sidebar {
-    display: none;
-  }
-  .mock-body {
-    height: 220px;
+  .carousel {
+    height: 240px;
   }
   .mock-window {
     transform: none;

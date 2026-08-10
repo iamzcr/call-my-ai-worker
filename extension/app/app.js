@@ -6,6 +6,8 @@ const els = {
   newChat: $('#newChat'),
   stopBtn: $('#stopBtn'),
   optsLink: $('#optsLink'),
+  contactBtn: $('#contactBtn'),
+  qrPop: $('#qrPop'),
   models: $('#models'),
   frames: $('#frames'),
   emptyHint: $('#emptyHint'),
@@ -216,6 +218,20 @@ els.newChat.addEventListener('click', () => {
 });
 els.stopBtn.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'stop-all' }));
 els.optsLink.addEventListener('click', (e) => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
+
+let qrHideTimer = null;
+function showQr() {
+  clearTimeout(qrHideTimer);
+  els.qrPop.classList.add('show');
+}
+function hideQr() {
+  clearTimeout(qrHideTimer);
+  qrHideTimer = setTimeout(() => els.qrPop.classList.remove('show'), 150);
+}
+els.contactBtn.addEventListener('mouseenter', showQr);
+els.contactBtn.addEventListener('mouseleave', hideQr);
+els.qrPop.addEventListener('mouseenter', showQr);
+els.qrPop.addEventListener('mouseleave', hideQr);
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'session-reset') {
