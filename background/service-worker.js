@@ -165,10 +165,12 @@ async function onAsk({ question, providerIds, followUp, attachments }) {
   if (followUp) {
     // keep the current session; push the follow-up question into each live iframe
     state.currentQuestion = question;
+    state.providers = selected;
     state.answers.clear();
-    for (const t of state.frameTasks.values()) {
-      t.question = question;
-      t.status = 'loading';
+    const keepIds = new Set(providerIds);
+    for (const [key, t] of state.frameTasks) {
+      if (t.provider && !keepIds.has(t.provider.id)) state.frameTasks.delete(key);
+      else { t.question = question; t.status = 'loading'; }
     }
     broadcast({ type: 'session-question', question, followUp: true });
     let tabId = state.appTabId;
@@ -189,10 +191,10 @@ async function onAsk({ question, providerIds, followUp, attachments }) {
         }
         if (!matched) {
           broadcast({ type: 'session-question', question, followUp: true });
-          startFrameSweep();
         }
       }).catch(() => {});
     }
+    startFrameSweep();
     return { ok: true, count: selected.length };
   }
 

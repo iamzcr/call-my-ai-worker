@@ -212,6 +212,7 @@ header h1 { font-size: 15px; margin: 0; color: #374151; font-weight: 600; }
   flex-shrink: 0;
 }
 .m-open:hover { color: #6366f1; }
+.m-refresh:hover { color: #059669; }
 .badge {
   font-size: 11px;
   padding: 2px 8px;

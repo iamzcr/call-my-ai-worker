@@ -83,10 +83,6 @@ function clearSession() {
   }
 }
 
-function sameSet(a, b) {
-  return a.length === b.length && a.every(x => b.includes(x));
-}
-
 function fmtSize(n) {
   if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
   if (n >= 1024) return Math.round(n / 1024) + ' KB';
@@ -226,7 +222,12 @@ chrome.runtime.onMessage.addListener((msg) => {
     clearSession();
   } else if (msg.type === 'session-question') {
     if (msg.question) els.question.value = msg.question;
-    if (!sessions.size && lastIds.length) buildSession(lastIds);
+    if (sessions.size) {
+      const missing = lastIds.filter(id => !sessions.has(id));
+      if (missing.length) addSessions(missing);
+    } else if (lastIds.length) {
+      buildSession(lastIds);
+    }
   } else if (msg.type === 'status-update') {
     setStatus(msg.providerId, msg.status);
   } else if (msg.type === 'frame-blocked') {
@@ -267,12 +268,28 @@ async function renderModels() {
     const badge = document.createElement('span');
     badge.className = 'badge';
     badge.textContent = '';
+    const refresh = document.createElement('button');
+    refresh.className = 'm-open m-refresh';
+    refresh.title = '刷新并重问';
+    refresh.textContent = '\u21bb';
     const open = document.createElement('button');
     open.className = 'm-open';
     open.title = '在新标签页打开';
     open.textContent = '\u2197';
-    row.append(cb, name, badge, open);
+    row.append(cb, name, badge, refresh, open);
     cb.addEventListener('click', (e) => e.stopPropagation());
+    refresh.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const s = sessions.get(p.id);
+      if (!s) return;
+      setStatus(p.id, 'loading');
+      try { s.iframe.contentWindow.location.reload(); }
+      catch (e2) {
+        const url = s.iframe.dataset.url || p.url;
+        s.iframe.src = 'about:blank';
+        s.iframe.src = url;
+      }
+    });
     open.addEventListener('click', (e) => {
       e.stopPropagation();
       chrome.runtime.sendMessage({ type: 'open-site', url: p.url });
