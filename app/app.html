@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Call My AI Worker — 问答</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>Call My AI Worker</h1>
+  <div class="h-actions">
+    <a id="optsLink" href="#" title="配置站点">&#9881;</a>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <textarea id="question" rows="3" placeholder="输入你的问题，回车发送给所有选中的 AI"></textarea>
+    <div class="attach-row">
+      <button id="attachBtn" type="button">＋ 附件</button>
+      <span id="attachCount"></span>
+    </div>
+    <div id="attachList"></div>
+    <input type="file" id="fileInput" multiple hidden>
+    <div class="ask-row">
+      <button id="askBtn" class="primary">提问</button>
+      <button id="stopBtn" class="ghost">停止</button>
+      <button id="newChat" class="ghost">新对话</button>
+    </div>
+    <div class="models-label">AI 站点（点击行切换查看）</div>
+    <div id="models"></div>
+  </aside>
+  <main class="content">
+    <div id="emptyHint" class="empty">勾选左侧站点并提问，右侧将显示 AI 实时网页</div>
+    <div id="frames"></div>
+  </main>
+</div>
+<script src="../lib/providers.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

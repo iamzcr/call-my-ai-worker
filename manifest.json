@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Call My AI Worker",
+  "version": "0.5.0",
+  "description": "一次提问，多个 AI 站点同时回答：同页 iframe 平铺各 AI 网页，content_scripts 一键分发问题。",
+  "permissions": ["storage", "tabs", "windows", "scripting", "system.display", "webNavigation", "declarativeNetRequest"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [{
+    "matches": [
+      "https://chat.deepseek.com/*",
+      "https://www.kimi.com/*",
+      "https://www.qianwen.com/*",
+      "https://www.chatglm.cn/*",
+      "https://www.doubao.com/*",
+      "https://yuanbao.tencent.com/*",
+      "https://*.minimaxi.com/*",
+      "https://zhida.zhihu.com/*",
+      "https://www.zhihu.com/*",
+      "https://gemini.google.com/*",
+      "https://chatgpt.com/*",
+      "https://copilot.microsoft.com/*",
+      "https://grok.com/*",
+      "https://claude.ai/*"
+    ],
+    "js": ["content/lib.js", "content/fill-watch.js"],
+    "all_frames": true,
+    "run_at": "document_idle"
+  }],
+  "action": {
+    "default_title": "Call My AI Worker",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Call My AI Worker — 站点配置</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Call My AI Worker — 站点配置</h1>
+    <div class="head-actions">
+      <button id="addBtn">+ 添加站点</button>
+      <button id="exportBtn">导出</button>
+      <button id="importBtn">导入</button>
+      <button id="saveBtn" class="primary">保存</button>
+    </div>
+  </header>
+  <p class="tip">所有站点都需要你在浏览器里先登录好账号（或该站点支持免登录）。站点改版导致选择器失效时，用「测试选择器」验证并调整。</p>
+  <div id="list"></div>
+  <div id="ioBox" class="io hidden">
+    <textarea id="ioText" rows="8" placeholder='[{"id":"custom-1","name":"新站点","url":"https://","inputSelector":"textarea, [contenteditable=true]"}]'></textarea>
+    <div class="io-actions">
+      <button id="ioApply" class="primary">应用</button>
+      <button id="ioCancel">取消</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+</div>
+<script src="../lib/providers.js"></script>
+<script src="options.js"></script>
+</body>
+</html>
