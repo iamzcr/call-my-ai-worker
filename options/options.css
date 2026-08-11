@@ -46,6 +46,47 @@ button.primary:hover { background: #5254d8; }
 .card label select { background: #262b36; color: #fff; border: 1px solid #3a4150; border-radius: 6px; padding: 5px 6px; }
 .card-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
 .card-actions .del { color: #f87171; }
+.sec-title { font-size: 16px; margin: 26px 0 4px; border-top: 1px solid #2c3040; padding-top: 18px; }
+.tip a { color: #818cf8; }
+.tip code { background: #262b36; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.key-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 240px; }
+.key-wrap input { flex: 1; }
+.key-eye {
+  background: #2a2f3a;
+  border: 1px solid #3a4150;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #8b8fa3;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.key-eye:hover { color: #fff; background: #343a47; }
+.key-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; }
+.key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2a2f3a;
+  border: 1px solid #3a4150;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.key-chip.active { border-color: #6366f1; }
+.key-chip-label { color: #e8eaf0; }
+.key-chip-x {
+  background: none;
+  border: 0;
+  color: #8b8fa3;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 12px;
+  line-height: 1;
+}
+.key-chip-x:hover { color: #f87171; }
+.key-empty { color: #8b8fa3; font-size: 12px; }
+.api-add-row { display: flex; gap: 8px; margin-top: 12px; }
 .io { margin-top: 16px; background: #1f222b; border: 1px solid #2c3040; border-radius: 10px; padding: 14px; }
 .io textarea {
   width: 100%;

@@ -21,6 +21,10 @@
 </header>
 <div class="layout">
   <aside class="sidebar">
+    <div class="mode-switch">
+      <button id="modeWeb" class="on" type="button">网页</button>
+      <button id="modeApi" type="button">API</button>
+    </div>
     <textarea id="question" rows="3" placeholder="输入你的问题，回车发送给所有选中的 AI"></textarea>
     <div class="h-tip">若 AI 对话框需要登录，请在对应 AI 模型里点击小箭头 ↗ 打开新标签页登录，然后点击 ↻ 刷新该 AI 模型</div>
     <div class="attach-row">
@@ -28,14 +32,46 @@
       <span id="attachCount"></span>
     </div>
     <div id="attachList"></div>
+    <div id="attachNote" class="attach-note hidden">仅图片附件随问题发送，PDF/文本等非图片附件已忽略</div>
     <input type="file" id="fileInput" multiple hidden>
     <div class="ask-row">
       <button id="askBtn" class="primary">提问</button>
       <button id="stopBtn" class="ghost">停止</button>
       <button id="newChat" class="ghost">新对话</button>
     </div>
-    <div class="models-label">AI 站点（点击行切换查看）</div>
+    <div class="models-label" id="modelsLabel">AI 站点（点击行切换查看）</div>
     <div id="models"></div>
+    <div id="apiPanel">
+      <div class="api-provider-row">
+        <select id="apiProviderSel" title="API 供应商"></select>
+        <button id="apiLoadBtn" class="api-load" title="重新拉取模型列表">&#8635;</button>
+      </div>
+      <div id="apiKeyRow" class="api-key-row hidden">
+        <div class="api-key-line">
+          <select id="apiKeySel" class="api-key-sel" title="选择 Key"></select>
+          <button id="apiKeyDel" type="button" class="api-key-eye" title="删除选中的 Key">&#215;</button>
+        </div>
+        <div class="api-key-line">
+          <input type="password" id="apiKeyInput" class="api-key-input" placeholder="添加新的 API Key" autocomplete="off">
+          <button id="apiKeyEye" type="button" class="api-key-eye" title="显示/隐藏">&#128065;</button>
+          <button id="apiKeyAdd" type="button" class="api-key-save">添加</button>
+        </div>
+      </div>
+      <div class="api-drop">
+        <button id="apiDropBtn" type="button" class="api-drop-btn">选择模型（0）</button>
+        <div id="apiDropPanel" class="api-drop-panel">
+          <input id="apiSearch" class="api-search" placeholder="搜索模型…">
+          <div id="apiDropList" class="api-drop-list"></div>
+          <div class="api-drop-foot">
+            <button id="apiSelAll" type="button">全选</button>
+            <button id="apiClearAll" type="button">清空</button>
+          </div>
+        </div>
+      </div>
+      <div id="apiNoProvider" class="api-hint hidden">未配置 API 供应商，<a href="#" id="apiGoOpts2">去选项页添加</a></div>
+      <div class="models-label">已选模型（点击行切换查看）</div>
+      <div id="apiRows"></div>
+    </div>
   </aside>
   <main class="content">
     <div id="emptyHint" class="empty">勾选左侧站点并提问，右侧将显示 AI 实时网页</div>
@@ -43,6 +79,10 @@
   </main>
 </div>
 <script src="../lib/providers.js"></script>
+<script src="../lib/api-providers.js"></script>
 <script src="app.js"></script>
+<script src="web-mode.js"></script>
+<script src="api-mode.js"></script>
+<script src="init.js"></script>
 </body>
 </html>

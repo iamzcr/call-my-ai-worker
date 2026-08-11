@@ -102,6 +102,7 @@ function add() {
 
 async function save() {
   await saveProviders(providers);
+  if (window.ApiOptions) await window.ApiOptions.persist();
   toast('已保存', true);
 }
 

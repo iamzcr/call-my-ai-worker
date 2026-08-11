@@ -1,5 +1,8 @@
 'use strict';
+// 核心壳：元素引用、附件、状态/徽标/面板切换共用机制、模式切换、公共事件分发。
+// 模式模块 web-mode.js / api-mode.js 挂到 window.WebMode / window.ApiMode。
 const $ = (s) => document.querySelector(s);
+
 const els = {
   question: $('#question'),
   askBtn: $('#askBtn'),
@@ -9,12 +12,17 @@ const els = {
   contactBtn: $('#contactBtn'),
   qrPop: $('#qrPop'),
   models: $('#models'),
+  modelsLabel: $('#modelsLabel'),
   frames: $('#frames'),
   emptyHint: $('#emptyHint'),
   attachBtn: $('#attachBtn'),
   fileInput: $('#fileInput'),
   attachList: $('#attachList'),
-  attachCount: $('#attachCount')
+  attachCount: $('#attachCount'),
+  attachNote: $('#attachNote'),
+  modeWeb: $('#modeWeb'),
+  modeApi: $('#modeApi'),
+  apiPanel: $('#apiPanel')
 };
 
 const attachments = []; // {name, type, size, data}  data=base64
@@ -30,59 +38,67 @@ const STATUS_TEXT = {
   'fill-failed': '',
   'submit-failed': '',
   stopped: '已停止',
-  done: '已答完'
+  done: '已答完',
+  failed: '失败'
 };
 
-const rowEls = new Map();   // providerId -> {chk, name, badge}
-const sessions = new Map(); // providerId -> {wrap, iframe, fallback}
-let providers = [];
-let activeId = null;
-let lastIds = [];
-let sessionAsked = false;
+const rowEls = { web: new Map(), api: new Map() };   // mode -> id -> {name, badge, ...}
+const sessions = { web: new Map(), api: new Map() }; // mode -> id -> {wrap, body, ...}
+const activeId = { web: null, api: null };
+let mode = 'web';
 
 function statusText(s) { return STATUS_TEXT[s] || s || '等待'; }
 
 function badgeClass(s) {
   if (s === 'done') return 'done';
   if (s === 'stopped') return 'stopped';
+  if (s === 'failed') return 'failed';
   if (s === 'submitted' || s === 'loading' || s === 'injecting') return 'working';
   return 'waiting';
 }
 
-function setStatus(providerId, status) {
-  const r = rowEls.get(providerId);
+function sessionCount(m) { return sessions[m].size; }
+function sessionIds(m) { return [...sessions[m].keys()]; }
+
+function refreshEmptyHint() {
+  els.emptyHint.style.display = sessionCount(mode) ? 'none' : 'flex';
+}
+
+function setStatus(m, id, status) {
+  const r = rowEls[m].get(id);
   if (!r) return;
   r.badge.className = 'badge ' + badgeClass(status);
   r.badge.textContent = statusText(status);
 }
 
-function switchModel(providerId) {
-  activeId = providerId;
-  for (const [pid, s] of sessions) {
-    s.wrap.classList.toggle('active', pid === providerId);
+function switchModel(m, id) {
+  activeId[m] = id;
+  for (const [pid, s] of sessions[m]) {
+    s.wrap.classList.toggle('active', pid === id);
   }
-  for (const [pid, r] of rowEls) {
-    r.name.classList.toggle('active', pid === providerId);
+  for (const [pid, r] of rowEls[m]) {
+    if (r.name) r.name.classList.toggle('active', pid === id);
   }
 }
 
-function setBlocked(providerId) {
-  const s = sessions.get(providerId);
-  if (s) s.fallback.classList.add('show');
-  setStatus(providerId, 'frame-blocked');
+function removeSession(m, id) {
+  const s = sessions[m].get(id);
+  if (s) {
+    s.wrap.remove();
+    sessions[m].delete(id);
+  }
 }
 
-function clearSession() {
-  sessions.clear();
-  els.frames.innerHTML = '';
-  activeId = null;
-  sessionAsked = false;
-  els.emptyHint.style.display = 'flex';
-  for (const [, r] of rowEls) {
+function clearSessions(m) {
+  for (const [, s] of sessions[m]) s.wrap.remove();
+  sessions[m].clear();
+  activeId[m] = null;
+  for (const [, r] of rowEls[m]) {
     r.badge.className = 'badge';
     r.badge.textContent = '';
-    r.name.classList.remove('active');
+    if (r.name) r.name.classList.remove('active');
   }
+  refreshEmptyHint();
 }
 
 function fmtSize(n) {
@@ -116,6 +132,8 @@ async function addFiles(files) {
 function renderAttachments() {
   els.attachList.innerHTML = '';
   els.attachCount.textContent = attachments.length ? `已选 ${attachments.length} 个文件` : '';
+  const hasNonImage = attachments.some(a => !(a.type && a.type.indexOf('image/') === 0));
+  els.attachNote.classList.toggle('hidden', !hasNonImage);
   attachments.forEach((a, i) => {
     const item = document.createElement('div');
     item.className = 'attach-item';
@@ -144,81 +162,48 @@ els.fileInput.addEventListener('change', () => {
   els.fileInput.value = '';
 });
 
+// ---------- 公共事件：按模式分发 ----------
 function ask() {
-  const q = els.question.value.trim();
-  if (!q) return;
-  const ids = [...els.models.querySelectorAll('input:checked')].map(i => i.value);
-  if (!ids.length) return;
-  const existing = [...sessions.keys()];
-  const removeIds = existing.filter(id => !ids.includes(id));
-  removeIds.forEach(id => removeSession(id));
-  const followUp = sessions.size > 0;
-  if (followUp) {
-    for (const pid of ids) setStatus(pid, 'loading');
-  }
-  lastIds = ids;
-  sessionAsked = true;
-  chrome.storage.local.set({ selectedProviderIds: ids });
-  const atts = attachments.map(a => ({ name: a.name, type: a.type, size: a.size, data: a.data }));
-  chrome.runtime.sendMessage({ type: 'ask', question: q, providerIds: ids, followUp, source: 'app', attachments: atts }, () => { void chrome.runtime.lastError; });
+  if (mode === 'web') WebMode.ask();
+  else ApiMode.ask();
 }
-
-async function createSessionRows(ids) {
-  const selected = providers.filter(p => ids.includes(p.id));
-  for (const p of selected) {
-    const wrap = document.createElement('div');
-    wrap.className = 'frame-wrap';
-    const iframe = document.createElement('iframe');
-    iframe.title = p.name;
-    iframe.dataset.url = p.url;
-    iframe.src = p.url;
-    wrap.appendChild(iframe);
-    const fallback = document.createElement('div');
-    fallback.className = 'fallback';
-    fallback.innerHTML = '<div class="fb-tip">该站点禁止 iframe 嵌入，无法在此显示</div><button class="fb-open">在新标签页打开</button>';
-    fallback.querySelector('.fb-open').addEventListener('click', () => chrome.runtime.sendMessage({ type: 'open-site', url: p.url }));
-    wrap.appendChild(fallback);
-    els.frames.appendChild(wrap);
-    sessions.set(p.id, { wrap, iframe, fallback });
-    setStatus(p.id, 'loading');
-  }
-  if (selected.length) switchModel(selected[0].id);
+function stopAll() {
+  if (mode === 'web') WebMode.stop();
+  else ApiMode.stop();
 }
-
-async function buildSession(ids) {
-  clearSession();
-  if (!ids.length) return;
-  els.emptyHint.style.display = 'none';
-  await createSessionRows(ids);
-  sessionAsked = true;
-}
-
-function addSessions(ids) {
-  if (!ids.length) return;
-  els.emptyHint.style.display = 'none';
-  createSessionRows(ids);
-  sessionAsked = true;
-}
-
-function removeSession(id) {
-  const s = sessions.get(id);
-  if (s) {
-    s.wrap.remove();
-    sessions.delete(id);
-  }
+function newChat() {
+  if (mode === 'web') WebMode.newChat();
+  else ApiMode.newChat();
 }
 
 els.askBtn.addEventListener('click', ask);
 els.question.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
 });
-els.newChat.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'reset-session' });
-  location.reload();
-});
-els.stopBtn.addEventListener('click', () => chrome.runtime.sendMessage({ type: 'stop-all' }));
+els.stopBtn.addEventListener('click', stopAll);
+els.newChat.addEventListener('click', newChat);
 els.optsLink.addEventListener('click', (e) => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
 
+// ---------- 模式切换 ----------
+function setMode(m) {
+  if (m === mode) return;
+  mode = m;
+  document.body.classList.toggle('mode-api', m === 'api');
+  els.modeWeb.classList.toggle('on', m === 'web');
+  els.modeApi.classList.toggle('on', m === 'api');
+  try { chrome.storage.local.set({ mode: m }); } catch (e) {}
+  refreshEmptyHint();
+}
+
+els.modeWeb.addEventListener('click', () => setMode('web'));
+els.modeApi.addEventListener('click', () => setMode('api'));
+
+// ---------- 消息监听（网页模式来自 background 的广播） ----------
+chrome.runtime.onMessage.addListener((msg) => {
+  if (window.WebMode && typeof WebMode.handleMessage === 'function') WebMode.handleMessage(msg);
+});
+
+// ---------- 联系我们 ----------
 let qrHideTimer = null;
 function showQr() {
   clearTimeout(qrHideTimer);
@@ -233,98 +218,12 @@ els.contactBtn.addEventListener('mouseleave', hideQr);
 els.qrPop.addEventListener('mouseenter', showQr);
 els.qrPop.addEventListener('mouseleave', hideQr);
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === 'session-reset') {
-    clearSession();
-  } else if (msg.type === 'session-question') {
-    if (msg.question) els.question.value = msg.question;
-    if (sessions.size) {
-      const missing = lastIds.filter(id => !sessions.has(id));
-      if (missing.length) addSessions(missing);
-    } else if (lastIds.length) {
-      buildSession(lastIds);
-    }
-  } else if (msg.type === 'status-update') {
-    setStatus(msg.providerId, msg.status);
-  } else if (msg.type === 'frame-blocked') {
-    setBlocked(msg.providerId);
-  }
-});
-
-async function renderModels() {
-  providers = await loadProviders();
-  const DEF_IDS = ['deepseek', 'qwen', 'kimi'];
-  const noLogin = providers.filter(p => p.noLogin === true).map(p => p.id);
-  const def = DEF_IDS.filter(id => providers.some(p => p.id === id));
-  const defaultIds = def.length ? def : (noLogin.length ? noLogin : providers.map(p => p.id));
-  const sel = new Set(defaultIds);
-  chrome.storage.local.set({ selectedProviderIds: defaultIds });
-  els.models.innerHTML = '';
-  rowEls.clear();
-  let lastRegion = '';
-  for (const p of providers) {
-    const region = p.region === 'overseas' ? '海外' : '国内';
-    if (region !== lastRegion) {
-      const label = document.createElement('div');
-      label.className = 'models-label';
-      label.textContent = region;
-      els.models.appendChild(label);
-      lastRegion = region;
-    }
-    const row = document.createElement('div');
-    row.className = 'model';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.className = 'chk';
-    cb.value = p.id;
-    cb.checked = sel.has(p.id);
-    const name = document.createElement('span');
-    name.className = 'm-name';
-    name.textContent = p.name;
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    badge.textContent = '';
-    const refresh = document.createElement('button');
-    refresh.className = 'm-open m-refresh';
-    refresh.title = '刷新并重问';
-    refresh.textContent = '\u21bb';
-    const open = document.createElement('button');
-    open.className = 'm-open';
-    open.title = '在新标签页打开';
-    open.textContent = '\u2197';
-    row.append(cb, name, badge, refresh, open);
-    cb.addEventListener('click', (e) => e.stopPropagation());
-    refresh.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const s = sessions.get(p.id);
-      if (!s) return;
-      setStatus(p.id, 'loading');
-      try { s.iframe.contentWindow.location.reload(); }
-      catch (e2) {
-        const url = s.iframe.dataset.url || p.url;
-        s.iframe.src = 'about:blank';
-        s.iframe.src = url;
-      }
-    });
-    open.addEventListener('click', (e) => {
-      e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'open-site', url: p.url });
-    });
-    row.addEventListener('click', () => {
-      if (sessions.has(p.id)) { switchModel(p.id); return; }
-      cb.checked = !cb.checked;
-    });
-    els.models.appendChild(row);
-    rowEls.set(p.id, { chk: cb, name, badge });
-  }
+// ---------- 启动 ----------
+async function initApp() {
+  await WebMode.init();
+  await ApiMode.init();
+  const { mode: savedMode } = await chrome.storage.local.get('mode');
+  if (savedMode === 'api') setMode('api');
 }
 
-function restore() {
-  chrome.runtime.sendMessage({ type: 'get-question' }, (q) => {
-    if (chrome.runtime.lastError) return;
-    if (q) els.question.value = q;
-  });
-}
-
-renderModels();
-restore();
+window.initApp = initApp;
