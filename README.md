@@ -54,6 +54,17 @@
 - **Markdown 渲染**：API 面板使用本地打包的 [marked](https://github.com/markedjs/marked)（MIT）解析 + [DOMPurify](https://github.com/cure53/DOMPurify)（Apache-2.0 / MPL-2.0）清洗防 XSS；面板头部「原文」按钮可在渲染视图与源码间切换，复制保留原始 Markdown。
 - **API 模式**：页面内直接 `fetch` 供应商接口（扩展具备 `<all_urls>` 主机权限，无 CORS 限制），每个模型独立 `AbortController` 控制流式输出与停止，按模型保留对话历史实现追问上下文。
 
+## 打包发布（Edge / Chrome 商店）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package.ps1
+```
+
+- 默认自动 **patch 递增** `manifest.json` 版本（商店要求每次提交版本递增），可用 `-Bump minor|major|none` 控制
+- 只打包发布所需文件（排除 `.git` / `_metadata` / 脚本 / 文档 / 临时文件），生成 `dist/call-my-ai-worker-v<版本>.zip`
+- 打包后自动校验：manifest 引用文件齐全、扫描疑似硬编码密钥（误报可忽略）、列出 zip 条目
+- 产物 zip 直接用于 Chrome Web Store 与 Edge Add-ons 上传；上架时需在后台说明权限用途并声明第三方库（marked / DOMPurify）
+
 ## 选项页
 
 点击主界面右上角「⚙」打开站点配置：
@@ -92,6 +103,8 @@
 │   ├── api-options.js     # API 供应商管理
 │   └── options.css
 └── icons/                 # 扩展图标
+scripts/
+  └── package.ps1          # 商店打包脚本（版本自增 + zip + 校验）
 ```
 
 ## 注意事项与限制
