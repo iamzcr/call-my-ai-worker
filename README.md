@@ -102,7 +102,7 @@
 - 某些站点（如 MiniMax）可能有积分/登录限制，页面反复跳转属站点自身行为，扩展无法阻止；此时对应站点会显示空状态，不影响其他站点。
 - 大文件附件经 base64 传输可能较慢或超限，建议常规文档/图片尺寸使用。
 - 部分站点不识别程序化派发的键盘/粘贴事件，自动提交可能失败，可在页面内手动操作（状态不显示红色失败，仅留空）。
-- API 模式附件统一以 base64 data URI 随问题发送；不支持的模型/供应商会由接口返回错误并显示，不影响其他模型。
+- API 模式附件功能**当前暂屏蔽**（部分 OpenAI 兼容下游不识别 `image_url`/`file` content 部件，待后续按模型原生协议适配后再启用）。
 - API 模式依赖供应商接口的 OpenAI 兼容 `chat/completions` 端点；opencode/opencode-go 目录中的部分模型（如 GPT / Claude / Gemini 官方仅提供 `/responses`、`/messages` 等协议）可能无法通过该端点调用，会显示失败原因，不影响其他模型。
 - **余额/Key 相关错误**：`CreditsError` 表示该 Key 对应工作区（opencode Zen）余额不足——OpenCode Go 订阅额度与 Zen 按量 Credits 是两套计费，Go 订阅不进入 API 的 Credits 余额，需到工作区账单页充值或改用其他供应商/Key。其余 401/429/模型不可用均有友好提示。
 - API Key 保存在 `chrome.storage.local`，仅本机浏览器内使用。
