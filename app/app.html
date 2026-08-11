@@ -24,6 +24,7 @@
     <div class="mode-switch">
       <button id="modeWeb" class="on" type="button">网页</button>
       <button id="modeApi" type="button">API</button>
+      <button id="modeAgent" type="button">Agent</button>
     </div>
     <textarea id="question" rows="3" placeholder="输入你的问题，回车发送给所有选中的 AI"></textarea>
     <div class="h-tip">若 AI 对话框需要登录，请在对应 AI 模型里点击小箭头 ↗ 打开新标签页登录，然后点击 ↻ 刷新该 AI 模型</div>
@@ -71,10 +72,19 @@
       <div class="models-label">已选模型（点击行切换查看）</div>
       <div id="apiRows"></div>
     </div>
+    <div id="agentPanel">
+      <div class="agent-model-row">
+        <select id="agentModelSel" title="Agent 模型"></select>
+        <button id="agentLoadBtn" class="api-load" title="重新拉取模型">&#8635;</button>
+      </div>
+      <div id="agentNoKey" class="api-hint hidden">未配置 API Key，<a href="#" id="agentGoOpts">去选项页填写</a></div>
+      <div id="agentStatus" class="agent-status"></div>
+    </div>
   </aside>
   <main class="content">
     <div id="emptyHint" class="empty">勾选左侧站点并提问，右侧将显示 AI 实时网页</div>
     <div id="frames"></div>
+    <div id="agentResult"><div id="agentLog"></div></div>
   </main>
 </div>
 <script src="../lib/providers.js"></script>
@@ -84,6 +94,7 @@
 <script src="app.js"></script>
 <script src="web-mode.js"></script>
 <script src="api-mode.js"></script>
+<script src="agent-mode.js"></script>
 <script src="init.js"></script>
 </body>
 </html>

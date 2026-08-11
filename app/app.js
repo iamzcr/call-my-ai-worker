@@ -21,7 +21,10 @@ const els = {
   attachCount: $('#attachCount'),
   modeWeb: $('#modeWeb'),
   modeApi: $('#modeApi'),
-  apiPanel: $('#apiPanel')
+  modeAgent: $('#modeAgent'),
+  apiPanel: $('#apiPanel'),
+  agentPanel: $('#agentPanel'),
+  agentResult: $('#agentResult')
 };
 
 const attachments = []; // {name, type, size, data}  data=base64
@@ -56,10 +59,14 @@ function badgeClass(s) {
   return 'waiting';
 }
 
-function sessionCount(m) { return sessions[m].size; }
-function sessionIds(m) { return [...sessions[m].keys()]; }
+function sessionCount(m) { const s = sessions[m]; return s ? s.size : 0; }
+function sessionIds(m) { const s = sessions[m]; return s ? [...s.keys()] : []; }
 
 function refreshEmptyHint() {
+  if (mode === 'agent') {
+    els.emptyHint.style.display = 'none';
+    return;
+  }
   els.emptyHint.style.display = sessionCount(mode) ? 'none' : 'flex';
 }
 
@@ -162,15 +169,18 @@ els.fileInput.addEventListener('change', () => {
 // ---------- 公共事件：按模式分发 ----------
 function ask() {
   if (mode === 'web') WebMode.ask();
-  else ApiMode.ask();
+  else if (mode === 'api') ApiMode.ask();
+  else AgentMode.start();
 }
 function stopAll() {
   if (mode === 'web') WebMode.stop();
-  else ApiMode.stop();
+  else if (mode === 'api') ApiMode.stop();
+  else AgentMode.stop();
 }
 function newChat() {
   if (mode === 'web') WebMode.newChat();
-  else ApiMode.newChat();
+  else if (mode === 'api') ApiMode.newChat();
+  else AgentMode.clear();
 }
 
 els.askBtn.addEventListener('click', ask);
@@ -185,15 +195,19 @@ els.optsLink.addEventListener('click', (e) => { e.preventDefault(); chrome.runti
 function setMode(m) {
   if (m === mode) return;
   mode = m;
-  document.body.classList.toggle('mode-api', m === 'api');
+  document.body.classList.remove('mode-api', 'mode-agent');
+  document.body.classList.add('mode-' + m);
   els.modeWeb.classList.toggle('on', m === 'web');
   els.modeApi.classList.toggle('on', m === 'api');
+  els.modeAgent.classList.toggle('on', m === 'agent');
   try { chrome.storage.local.set({ mode: m }); } catch (e) {}
+  if (m === 'agent' && window.AgentMode) AgentMode.refresh().catch(() => {});
   refreshEmptyHint();
 }
 
 els.modeWeb.addEventListener('click', () => setMode('web'));
 els.modeApi.addEventListener('click', () => setMode('api'));
+els.modeAgent.addEventListener('click', () => setMode('agent'));
 
 // ---------- 消息监听（网页模式来自 background 的广播） ----------
 chrome.runtime.onMessage.addListener((msg) => {
@@ -219,8 +233,10 @@ els.qrPop.addEventListener('mouseleave', hideQr);
 async function initApp() {
   await WebMode.init();
   await ApiMode.init();
+  await AgentMode.init();
   const { mode: savedMode } = await chrome.storage.local.get('mode');
   if (savedMode === 'api') setMode('api');
+  else if (savedMode === 'agent') setMode('agent');
 }
 
 window.initApp = initApp;

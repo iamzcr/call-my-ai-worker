@@ -17,6 +17,7 @@
 - **iframe 嵌入**：通过 declarativeNetRequest 剥离目标站点的 `Content-Security-Policy` / `X-Frame-Options` 响应头以允许内嵌。
 - **API 模式**：供应商 = Base URL + API Key，自动拼 `{baseUrl}/models` 拉取模型（可覆盖地址）；搜索 + 多选下拉选模型；SSE 流式逐字输出；每个模型各自保留上下文；**附件功能当前暂屏蔽**（图片 `image_url` / 文本内嵌 / 二进制 `file` 部件的逻辑已保留，后续再启用）；答案**默认渲染为排版 Markdown**，面板头部可切换「原文」源码；`↻` 重问、`⧉` 复制原始 Markdown。
 - **双模式切换**：侧边栏顶部「网页 / API」一键切换，选择 API 模式时回显供应商与模型相关设置；切换时**保留各模式已生成的会话与回答**，来回切换互不清空。
+- **Agent 模式（AI 操作浏览器）**：第三个模式。让模型读取你**当前正在浏览的标签页**（DOM 元素快照），通过工具调用执行点击/输入/按键/滚动/跳转/下载视频等动作，循环直到完成目标（如"打开B站找视频并下载"、把标题发给我）；右侧日志面板实时展示每个动作；支持停止与最大步数限制。模型沿用 API 模式的供应商与 Key，单独选择 Agent 模型。B站下载在页面上下文内完成（fetch 流 + blob 保存，浏览器自动带 Referer/Cookie），无需额外权限；720p+ 需登录态，DASH 音视频分开下载需合并。
 
 ## 安装
 
@@ -84,6 +85,7 @@ powershell -ExecutionPolicy Bypass -File scripts\package.ps1
 ├── content/
 │   ├── lib.js             # 内容脚本公共库
 │   ├── fill-watch.js      # 填充提问、跟踪答案、停止、附件注入
+│   ├── agent.js           # Agent 模式：页面快照 + 动作执行
 │   └── test-selector.js   # 选项页「测试选择器」辅助脚本
 ├── lib/
 │   ├── providers.js       # 内置站点列表与默认设置
@@ -95,6 +97,7 @@ powershell -ExecutionPolicy Bypass -File scripts\package.ps1
 │   ├── app.js             # 核心壳：模式切换、共用机制、事件分发
 │   ├── web-mode.js        # 网页模式模块
 │   ├── api-mode.js        # API 模式模块
+│   ├── agent-mode.js      # Agent 模式：模型操作当前浏览器页面
 │   ├── init.js            # 启动入口（符合 MV3 CSP）
 │   └── app.css
 ├── options/               # 选项页（站点配置 + API 供应商）

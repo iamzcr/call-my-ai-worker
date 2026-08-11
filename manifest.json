@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Call My AI Worker",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "一次提问，多个 AI 站点同时回答：同页 iframe 平铺各 AI 网页，content_scripts 一键分发问题。",
   "permissions": ["storage", "tabs", "windows", "scripting", "system.display", "webNavigation", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
