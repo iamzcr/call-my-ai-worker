@@ -100,17 +100,6 @@ function clearSession() {
   state.winByTab.clear();
 }
 
-async function closeSession() {
-  const tabId = state.appTabId;
-  const winId = state.appWinId;
-  state.appWinId = null;
-  setAppTab(null);
-  clearSession();
-  await persistTasks();
-  if (tabId != null) chrome.tabs.remove(tabId).catch(() => {});
-  else if (winId != null) chrome.windows.remove(winId).catch(() => {});
-}
-
 // ---------- app window ----------
 async function ensureAppWindow() {
   if (state.appWinId != null) {
@@ -156,7 +145,6 @@ async function onAsk({ question, providerIds, followUp, attachments }) {
     try { await chrome.windows.get(state.appWinId); }
     catch (e) { state.appWinId = null; setAppTab(null); }
   }
-  if (state.appWinId == null) await closeSession();
   let winId = state.appWinId;
   if (winId == null) {
     try { winId = await ensureAppWindow(); }

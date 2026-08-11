@@ -4,6 +4,7 @@
 // 依赖 app.js 核心全局：$ / els / attachments / sessions / rowEls / setStatus / switchModel /
 // removeSession / clearSessions / chrome，以及 lib/api-providers.js 的 ApiProviders。
 window.ApiMode = (() => {
+  const MODE = 'api';
   const u = {
     provSel: $('#apiProviderSel'),
     loadBtn: $('#apiLoadBtn'),
@@ -33,6 +34,7 @@ window.ApiMode = (() => {
     rowIds: new Set(),   // 当前行占用的 id（用于清理 rowEls 中已取消的项）
     history: new Map(),  // modelId -> messages[]
     aborts: new Map(),   // modelId -> AbortController
+    rawAnswers: new Map(), // modelId -> 原始 Markdown 文本
     lastQuestion: ''
   };
 
@@ -106,7 +108,7 @@ window.ApiMode = (() => {
       for (const [, ac] of state.aborts) ac.abort();
       state.aborts.clear();
       state.history.clear();
-      clearSessions();
+      clearSessions(MODE);
       state.selected = [];
       chrome.storage.local.set({ apiModelIds: [] });
     }
@@ -266,7 +268,7 @@ window.ApiMode = (() => {
     u.rows.innerHTML = '';
     const selectedSet = new Set(state.selected);
     for (const id of [...state.rowIds]) {
-      if (!selectedSet.has(id)) rowEls.delete(id);
+      if (!selectedSet.has(id)) rowEls[MODE].delete(id);
     }
     state.rowIds = new Set(state.selected);
     if (!state.selected.length) {
@@ -295,9 +297,9 @@ window.ApiMode = (() => {
       row.append(name, badge, refresh, copy);
       refresh.addEventListener('click', (e) => { e.stopPropagation(); reask(id); });
       copy.addEventListener('click', (e) => { e.stopPropagation(); copyAnswer(id); });
-      row.addEventListener('click', () => { if (sessions.has(id)) switchModel(id); });
+      row.addEventListener('click', () => { if (sessions[MODE].has(id)) switchModel(MODE, id); });
       u.rows.appendChild(row);
-      rowEls.set(id, { name, badge, copy, refresh });
+      rowEls[MODE].set(id, { mode: MODE, name, badge, copy, refresh });
     }
   }
 
@@ -305,7 +307,7 @@ window.ApiMode = (() => {
   function createPanel(id) {
     const m = state.models.find(x => x.id === id);
     const wrap = document.createElement('div');
-    wrap.className = 'frame-wrap';
+    wrap.className = 'frame-wrap fw-api';
     const inner = document.createElement('div');
     inner.className = 'api-panel';
     const head = document.createElement('div');
@@ -313,7 +315,12 @@ window.ApiMode = (() => {
     const nm = document.createElement('span');
     nm.className = 'api-panel-name';
     nm.textContent = m ? m.name : id;
-    head.appendChild(nm);
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'api-view-toggle';
+    toggle.title = '切换 渲染 Markdown / 原文源码';
+    toggle.textContent = '原文';
+    head.append(nm, toggle);
     const body = document.createElement('div');
     body.className = 'api-body';
     const q = document.createElement('div');
@@ -324,13 +331,37 @@ window.ApiMode = (() => {
     inner.append(head, body);
     wrap.appendChild(inner);
     els.frames.appendChild(wrap);
-    sessions.set(id, { wrap, body, q, ans });
+    sessions[MODE].set(id, { mode: MODE, id, wrap, body, q, ans, toggle, view: 'md' });
+    toggle.addEventListener('click', () => {
+      const s = sessions[MODE].get(id);
+      if (!s) return;
+      s.view = s.view === 'md' ? 'src' : 'md';
+      s.toggle.textContent = s.view === 'md' ? '原文' : '渲染';
+      renderAnswer(id);
+    });
+  }
+
+  // 按面板当前视图渲染：md → DOMPurify 清洗后的 HTML；src → 原文
+  function renderAnswer(id) {
+    const s = sessions[MODE].get(id);
+    if (!s) return;
+    const raw = state.rawAnswers.get(id) || '';
+    if (s.view === 'src') {
+      s.ans.textContent = raw;
+      s.ans.classList.add('src');
+    } else {
+      s.ans.innerHTML = DOMPurify.sanitize(marked.parse(raw || ''));
+      s.ans.classList.remove('src');
+    }
   }
 
   function resetPanel(id, question) {
-    const s = sessions.get(id);
+    const s = sessions[MODE].get(id);
     if (!s) return;
     s.q.textContent = '问：' + question;
+    state.rawAnswers.delete(id);
+    s.ans.classList.remove('src');
+    s.ans.innerHTML = '';
     s.ans.textContent = '正在等待响应…';
     s.ans.classList.add('waiting');
   }
@@ -338,11 +369,16 @@ window.ApiMode = (() => {
   async function stream(id, hist, signal) {
     let acc = '';
     let timer = null;
-    const sess = () => sessions.get(id);
+    const sess = () => sessions[MODE].get(id);
     const setAns = (t) => { const s = sess(); if (s) s.ans.textContent = t; };
     const render = () => {
       const s = sess();
-      if (s) { s.ans.classList.remove('waiting'); s.ans.textContent = acc; }
+      if (!s) return;
+      if (acc) {
+        state.rawAnswers.set(id, acc);
+        s.ans.classList.remove('waiting');
+        renderAnswer(id);
+      }
     };
     try {
       setAns('正在等待响应…');
@@ -352,24 +388,23 @@ window.ApiMode = (() => {
         messages: hist,
         signal,
         onDelta: (d) => {
-          const s = sess();
-          if (s) s.ans.classList.remove('waiting');
           acc += d;
-          if (!timer) timer = setTimeout(() => { timer = null; render(); }, 100);
+          if (!timer) timer = setTimeout(() => { timer = null; render(); }, 150);
         }
       });
       if (timer) { clearTimeout(timer); timer = null; }
       render();
+      if (!acc) { const s = sess(); if (s) { s.ans.classList.remove('waiting'); s.ans.textContent = ''; } }
       hist.push({ role: 'assistant', content: acc });
-      setStatus(id, 'done');
+      setStatus(MODE, id, 'done');
     } catch (e) {
       if (timer) { clearTimeout(timer); timer = null; }
       if (e && e.name === 'AbortError') {
         render();
         if (!acc) setAns('已停止');
-        setStatus(id, 'stopped');
+        setStatus(MODE, id, 'stopped');
       } else {
-        setStatus(id, 'failed');
+        setStatus(MODE, id, 'failed');
         const msg = (e && e.message) ? e.message : String(e);
         const link = e && e.link ? e.link : '';
         const s = sess();
@@ -408,29 +443,30 @@ window.ApiMode = (() => {
 
     state.lastQuestion = q;
 
-    const existing = [...sessions.keys()];
+    const existing = sessionIds(MODE);
     const removeIds = existing.filter(id => !ids.includes(id));
     removeIds.forEach(id => {
-      removeSession(id);
+      removeSession(MODE, id);
       state.history.delete(id);
+      state.rawAnswers.delete(id);
       const ac = state.aborts.get(id);
       if (ac) { ac.abort(); state.aborts.delete(id); }
     });
 
     for (const id of ids) {
-      if (!sessions.has(id)) createPanel(id);
+      if (!sessions[MODE].has(id)) createPanel(id);
       resetPanel(id, q);
       const m = state.models.find(x => x.id === id);
       const hist = state.history.get(id) || [];
-      hist.push({ role: 'user', content: ApiProviders.buildContent(q, attachments, m) });
+      hist.push({ role: 'user', content: ApiProviders.buildContent(q, []) }); // 附件功能暂屏蔽
       state.history.set(id, hist);
-      setStatus(id, 'loading');
+      setStatus(MODE, id, 'loading');
       const ac = new AbortController();
       state.aborts.set(id, ac);
       stream(id, hist, ac.signal);
     }
     els.emptyHint.style.display = 'none';
-    if (ids.length) switchModel(ids[0]);
+    if (ids.length) switchModel(MODE, ids[0]);
   }
 
   async function reask(id) {
@@ -439,25 +475,24 @@ window.ApiMode = (() => {
     const ac = state.aborts.get(id);
     if (ac) ac.abort();
     state.history.delete(id);
-    if (!sessions.has(id)) createPanel(id);
+    if (!sessions[MODE].has(id)) createPanel(id);
     resetPanel(id, q);
     const m = state.models.find(x => x.id === id);
-    const hist = [{ role: 'user', content: ApiProviders.buildContent(q, attachments, m) }];
+    const hist = [{ role: 'user', content: ApiProviders.buildContent(q, []) }]; // 附件功能暂屏蔽
     state.history.set(id, hist);
-    setStatus(id, 'loading');
+    setStatus(MODE, id, 'loading');
     const a = new AbortController();
     state.aborts.set(id, a);
     stream(id, hist, a.signal);
     els.emptyHint.style.display = 'none';
-    switchModel(id);
+    switchModel(MODE, id);
   }
 
   function copyAnswer(id) {
-    const s = sessions.get(id);
-    const text = s ? (s.ans ? s.ans.textContent : '') : '';
-    if (!text || text === '正在等待响应…') return;
+    const text = state.rawAnswers.get(id) || '';
+    if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      const r = rowEls.get(id);
+      const r = rowEls[MODE].get(id);
       if (r && r.copy) {
         r.copy.textContent = '\u2713';
         setTimeout(() => { if (r.copy) r.copy.textContent = '\u29c9'; }, 1200);
@@ -472,9 +507,10 @@ window.ApiMode = (() => {
 
   function clear() {
     state.history.clear();
+    state.rawAnswers.clear();
     for (const [, ac] of state.aborts) ac.abort();
     state.aborts.clear();
-    clearSessions();
+    clearSessions(MODE);
   }
 
   async function init() {

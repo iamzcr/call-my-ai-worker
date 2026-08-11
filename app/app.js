@@ -19,7 +19,6 @@ const els = {
   fileInput: $('#fileInput'),
   attachList: $('#attachList'),
   attachCount: $('#attachCount'),
-  attachNote: $('#attachNote'),
   modeWeb: $('#modeWeb'),
   modeApi: $('#modeApi'),
   apiPanel: $('#apiPanel')
@@ -132,8 +131,6 @@ async function addFiles(files) {
 function renderAttachments() {
   els.attachList.innerHTML = '';
   els.attachCount.textContent = attachments.length ? `已选 ${attachments.length} 个文件` : '';
-  const hasNonImage = attachments.some(a => !(a.type && a.type.indexOf('image/') === 0));
-  els.attachNote.classList.toggle('hidden', !hasNonImage);
   attachments.forEach((a, i) => {
     const item = document.createElement('div');
     item.className = 'attach-item';

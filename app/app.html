@@ -32,7 +32,6 @@
       <span id="attachCount"></span>
     </div>
     <div id="attachList"></div>
-    <div id="attachNote" class="attach-note hidden">仅图片附件随问题发送，PDF/文本等非图片附件已忽略</div>
     <input type="file" id="fileInput" multiple hidden>
     <div class="ask-row">
       <button id="askBtn" class="primary">提问</button>
@@ -80,6 +79,8 @@
 </div>
 <script src="../lib/providers.js"></script>
 <script src="../lib/api-providers.js"></script>
+<script src="../lib/marked.umd.js"></script>
+<script src="../lib/dompurify.js"></script>
 <script src="app.js"></script>
 <script src="web-mode.js"></script>
 <script src="api-mode.js"></script>

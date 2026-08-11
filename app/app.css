@@ -495,7 +495,19 @@ body.mode-api #models, body.mode-api #modelsLabel { display: none; }
   gap: 8px;
   flex-shrink: 0;
 }
-.api-panel-name { font-weight: 600; font-size: 13px; color: #374151; }
+.api-panel-name { flex: 1; font-weight: 600; font-size: 13px; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-view-toggle {
+  background: #fff;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.api-view-toggle:hover { background: #f3f4f6; color: #111827; }
 .api-body {
   flex: 1;
   overflow-y: auto;
@@ -515,22 +527,64 @@ body.mode-api #models, body.mode-api #modelsLabel { display: none; }
   white-space: pre-wrap;
   word-break: break-word;
 }
-.api-ans { min-height: 1em; }
+.api-ans { min-height: 1em; white-space: normal; }
+.api-ans.src { white-space: pre-wrap; }
 .api-ans.waiting { color: #9ca3af; animation: api-pulse 1.2s ease-in-out infinite; }
 .api-err { color: #ef4444; white-space: pre-wrap; word-break: break-word; }
 .api-err-link { color: #6366f1; text-decoration: underline; cursor: pointer; }
 @keyframes api-pulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 
-/* ---------- API 模式下启用附件 ---------- */
-body.mode-api .attach-row { display: flex !important; align-items: center; gap: 8px; flex-shrink: 0; }
-body.mode-api #attachList { display: flex !important; flex-direction: column; gap: 6px; }
-body:not(.mode-api) #attachNote { display: none !important; }
-.attach-note {
-  font-size: 11px;
-  color: #b45309;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  border-radius: 6px;
-  padding: 4px 8px;
-  flex-shrink: 0;
+/* ---------- Markdown 渲染排版 ---------- */
+.api-ans > *:first-child { margin-top: 0; }
+.api-ans > *:last-child { margin-bottom: 0; }
+.api-ans h1, .api-ans h2, .api-ans h3, .api-ans h4, .api-ans h5, .api-ans h6 {
+  margin: 14px 0 8px;
+  line-height: 1.3;
+  color: #111827;
 }
+.api-ans h1 { font-size: 18px; }
+.api-ans h2 { font-size: 16px; }
+.api-ans h3 { font-size: 15px; }
+.api-ans h4, .api-ans h5, .api-ans h6 { font-size: 14px; }
+.api-ans p { margin: 8px 0; }
+.api-ans ul, .api-ans ol { margin: 8px 0; padding-left: 22px; }
+.api-ans li { margin: 3px 0; }
+.api-ans a { color: #6366f1; text-decoration: underline; }
+.api-ans img { max-width: 100%; border-radius: 6px; }
+.api-ans blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid #d1d5db;
+  color: #4b5563;
+  background: #f9fafb;
+  border-radius: 0 6px 6px 0;
+}
+.api-ans code {
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+  font-size: 12px;
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #be185d;
+}
+.api-ans pre {
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.api-ans pre code { background: none; color: inherit; padding: 0; font-size: 12px; }
+.api-ans table { border-collapse: collapse; margin: 8px 0; width: 100%; }
+.api-ans th, .api-ans td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+.api-ans th { background: #f9fafb; font-weight: 600; }
+.api-ans hr { border: 0; border-top: 1px solid #e5e7eb; margin: 14px 0; }
+.api-ans del { color: #9ca3af; }
+
+/* ---------- 附件功能暂屏蔽（保留 UI 隐藏，代码保留后续再启用） ---------- */
+
+/* ---------- 模式切换时隐藏另一模式的面板 ---------- */
+body.mode-api .frame-wrap.fw-web { display: none; }
+body:not(.mode-api) .frame-wrap.fw-api { display: none; }
